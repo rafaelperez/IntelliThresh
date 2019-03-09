@@ -8,6 +8,33 @@ import torch
 from vgg import vgg16_bn_descriptor
 from utils import downsize_rgb, img_transform, crop_out
 
+class ThreshModel(object):
+    def __init__(self, feature_dim):
+        self.feature_dim = feature_dim
+    
+    def learn(self, features, labels):
+        pass
+    
+    def infer(self, features):
+        pass
+
+class LinearThreshModel(ThreshModel):
+    def __init__(self, feature_dim, learning_iters=10):
+        super(LinearThreshModel, self).__init__(feature_dim)
+        self.weights = None
+        self.learning_iters = learning_iters
+        
+    def learn(self, features, labels):
+        N = features.shape[0]
+        feats = np.concatenate((features, np.ones((N, 1), dtype=np.float32)), axis=1)
+        self.weights = np.linalg.inv(feats.transpose() @ feats) @ (feats.transpose() @ labels)
+        print(self.weights)
+        
+    def infer(self, features):
+        assert self.weights is not None, 'weights are not learnt yet!'
+        scores = features @ self.weights[0:self.feature_dim] + self.weights[self.feature_dim]
+        return scores
+
 
 class DeepBkSubtractor(object):
     def __init__(self, max_size=1000, rgb_downscale_factor=0.2):
@@ -61,14 +88,17 @@ class DeepBkSubtractor(object):
 
     def get_mask(self, img, bk):
         diffs = self.get_diffs(img, bk)
-        
+        h, w, feature_dim = diffs.shape
+
         # solve threashold model from disparity feature
         # we need an initial positive mask.
         # TODO: call OpenPose here
         pos_mask = cv2.imread('pose_mask.png', 0)
         learned_mask = np.zeros(img.shape[0:2], dtype=np.uint8)
 
-        for i in range(10):
+        thresh_model = LinearThreshModel(feature_dim)
+
+        for i in range(thresh_model.learning_iters):
             neg_mask = 255 - pos_mask
 
             pos_is, pos_js = np.where(pos_mask > 0)
@@ -82,22 +112,18 @@ class DeepBkSubtractor(object):
             neg_js = neg_js[neg_sample_ids]
 
             pos_feats = diffs[pos_is, pos_js, :]
-            neg_feats = diffs[neg_is, neg_js, :]
-            
-            pos_feats = np.concatenate((pos_feats, np.ones((pos_num, 1), dtype=np.float32)), axis=1)
-            neg_feats = np.concatenate((neg_feats, np.ones((pos_num, 1), dtype=np.float32)), axis=1)
+            neg_feats = diffs[neg_is, neg_js, :]            
 
             feats = np.concatenate((pos_feats, neg_feats), axis=0)
 
             labels = np.zeros((2*pos_num, 1), dtype=np.float32)
             labels[:pos_num, :] = 1
 
-            weights = np.linalg.inv(feats.transpose() @ feats) @ (feats.transpose() @ labels)
-            
-            print(weights)
+            # learn
+            thresh_model.learn(feats, labels)
 
-            h, w, c = diffs.shape
-            score = diffs.reshape(h*w, c) @ weights[0:c] + weights[c]
+            # infer
+            score = thresh_model.infer(diffs.reshape(h*w, feature_dim))
             score = score.reshape(h, w)
 
             learned_mask_fgs = score > 0.5
@@ -110,8 +136,6 @@ class DeepBkSubtractor(object):
             pos_mask = learned_mask
 
         return learned_mask
-        
-        
         
         
 

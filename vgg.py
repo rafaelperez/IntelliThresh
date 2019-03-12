@@ -2,7 +2,28 @@ import torch
 import torchvision
 import torchvision.models as models
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
+
+
+class ThreshNet(nn.Module):
+    def __init__(self, feature_dim, hidden_dim=3):
+        super(ThreshNet, self).__init__()
+        self.fc1 = nn.Linear(feature_dim, hidden_dim)
+        self.relu1 = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_dim, 1)
+        # self.relu2 = nn.ReLU()
+        # self.fc3 = nn.Linear(hidden_dim, 1)
+    
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu1(x)
+        x = self.fc2(x)
+        # x = self.relu2(x)
+        # x = self.fc3(x)
+        x = F.sigmoid(x)
+        return x
+
 
 class VGGDescriptor(nn.Module):
     def __init__(self, features):

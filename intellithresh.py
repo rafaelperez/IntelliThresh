@@ -4,19 +4,24 @@ import os
 import matplotlib.pyplot as plt
 
 import torch
+import torch.optim as optim
+from torch.utils.data import TensorDataset, DataLoader
+import torch.nn.functional as F
 
-from vgg import vgg16_bn_descriptor
+from vgg import vgg16_bn_descriptor, ThreshNet
 from utils import downsize_rgb, img_transform, crop_out
+
 
 class ThreshModel(object):
     def __init__(self, feature_dim):
         self.feature_dim = feature_dim
-    
+
     def learn(self, features, labels):
         pass
-    
+
     def infer(self, features):
         pass
+
 
 class LinearThreshModel(ThreshModel):
     def __init__(self, feature_dim, learning_iters=10):
@@ -33,6 +38,55 @@ class LinearThreshModel(ThreshModel):
     def infer(self, features):
         assert self.weights is not None, 'weights are not learnt yet!'
         scores = features @ self.weights[0:self.feature_dim] + self.weights[self.feature_dim]
+        return scores
+
+
+class DeepThreshModel(ThreshModel):
+    def __init__(self, feature_dim):
+        self.feature_dim = feature_dim
+        self.learning_iters = 10
+        self.batch_size = 1000
+        self.epochs = 1
+
+        self.model = ThreshNet(self.feature_dim, hidden_dim=1)
+        self.device = torch.device('cuda:1')
+        self.model.to(self.device)
+
+        self.sample_feature_num = 1000000
+
+    def learn(self, features, labels):
+
+        self.model = ThreshNet(self.feature_dim, hidden_dim=1)
+        self.device = torch.device('cuda:1')
+        self.model.to(self.device)
+
+        sample_ids = np.random.choice(a=features.shape[0], size=self.sample_feature_num)
+        features = features[sample_ids, :]
+        labels = labels[sample_ids, :]
+
+        optimizer = optim.Adam(self.model.parameters())
+        features = torch.from_numpy(features).to(self.device)
+        labels = torch.from_numpy(labels).to(self.device)
+        dataset = TensorDataset(features, labels)
+        data_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+
+        self.model.train()
+
+        for epoch in range(self.epochs):
+            print('epoch %d' % epoch)
+            for feature, label in data_loader:
+                pred = self.model(feature)
+                loss = F.binary_cross_entropy(pred, label)
+                loss.backward()
+                optimizer.step()
+
+                print('loss: %.4f' % loss.item())
+
+    def infer(self, features):
+        self.model.eval()
+        features = torch.from_numpy(features).to(self.device)
+        scores = self.model(features)
+        scores = scores.detach().cpu().numpy()
         return scores
 
 
@@ -97,6 +151,7 @@ class DeepBkSubtractor(object):
         learned_mask = np.zeros(img.shape[0:2], dtype=np.uint8)
 
         thresh_model = LinearThreshModel(feature_dim)
+        # thresh_model = DeepThreshModel(feature_dim)
 
         for i in range(thresh_model.learning_iters):
             neg_mask = 255 - pos_mask

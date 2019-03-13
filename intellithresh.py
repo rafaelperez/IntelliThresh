@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+import datetime
 import matplotlib.pyplot as plt
 
 import torch
@@ -10,6 +11,8 @@ import torch.nn.functional as F
 
 from vgg import vgg16_bn_descriptor, ThreshNet
 from utils import downsize_rgb, img_transform, crop_out
+
+from human_parser.openpose_pytorch.api import OpenPoseForeGroundMarker
 
 
 class ThreshModel(object):
@@ -24,7 +27,7 @@ class ThreshModel(object):
 
 
 class LinearThreshModel(ThreshModel):
-    def __init__(self, feature_dim, learning_iters=10):
+    def __init__(self, feature_dim, learning_iters=5):
         super(LinearThreshModel, self).__init__(feature_dim)
         self.weights = None
         self.learning_iters = learning_iters
@@ -33,7 +36,7 @@ class LinearThreshModel(ThreshModel):
         N = features.shape[0]
         feats = np.concatenate((features, np.ones((N, 1), dtype=np.float32)), axis=1)
         self.weights = np.linalg.inv(feats.transpose() @ feats) @ (feats.transpose() @ labels)
-        print(self.weights)
+        # print(self.weights)
         
     def infer(self, features):
         assert self.weights is not None, 'weights are not learnt yet!'
@@ -107,10 +110,23 @@ class DeepBkSubtractor(object):
         diff = cv2.resize(diff, (w, h))
         return diff
 
+    def get_rgb_diff_scale_invariant(self, img, bg, factor):
+        h, w = img.shape[:2]
+        img_feature = downsize_rgb(img, factor)
+        bg_feature = downsize_rgb(bg, factor)
+        eps = 1.0
+        bg_feature += eps
+        diff = np.abs(img_feature - bg_feature)
+        #diff = np.sum((img_feature - bg_feature)**2, axis=2)**0.5
+        diff = diff / bg_feature
+        diff = np.sum(diff**2, axis=2)**0.5
+        diff = cv2.resize(diff, (w, h))
+        return diff
+
     def get_diffs(self, img, bk):
         h, w = img.shape[0:2]
 
-        diff_rgb = self.get_rgb_diff(img, bk, self.rgb_downscale_factor)
+        diff_rgb = self.get_rgb_diff_scale_invariant(img, bk, self.rgb_downscale_factor)
 
         img_trans = img_transform(img)
         bk_trans = img_transform(bk)
@@ -125,7 +141,7 @@ class DeepBkSubtractor(object):
             img_feature = batch_feature[0, :, :, :]
             bk_feature = batch_feature[1, :, :, :]
             
-            diff = torch.sum((img_feature - bk_feature)**2, dim=0)
+            diff = torch.sum((img_feature - bk_feature)**2, dim=0)**0.5
             
             diff = diff.detach().cpu().numpy()
             diff = cv2.resize(diff, (w, h))
@@ -140,14 +156,15 @@ class DeepBkSubtractor(object):
         diffs = (diffs - means) / stds
         return diffs
 
-    def get_mask(self, img, bk):
+    def get_mask(self, img, bk, init_fg_mask):
         diffs = self.get_diffs(img, bk)
         h, w, feature_dim = diffs.shape
 
         # solve threashold model from disparity feature
         # we need an initial positive mask.
         # TODO: call OpenPose here
-        pos_mask = cv2.imread('pose_mask.png', 0)
+        # pos_mask = cv2.imread('pose_mask.png', 0)
+        pos_mask = init_fg_mask
         learned_mask = np.zeros(img.shape[0:2], dtype=np.uint8)
 
         thresh_model = LinearThreshModel(feature_dim)
@@ -185,8 +202,8 @@ class DeepBkSubtractor(object):
             learned_mask.fill(0)
             learned_mask[learned_mask_fgs] = 255
 
-            plt.imshow(learned_mask)
-            plt.show()
+            #plt.imshow(learned_mask)
+            #plt.show()
 
             pos_mask = learned_mask
 
@@ -196,8 +213,10 @@ class DeepBkSubtractor(object):
 
 
 if __name__ == '__main__':
+    """
     data_root = '/home/mscv1/Desktop/FRL/ChengleiSocial/undistorted'
     bg_dir = '000000'
+
     # 020296
     #   400126
     #   400038
@@ -209,20 +228,91 @@ if __name__ == '__main__':
     # 020315
     #   400219
 
+    # 020293
+    #   400128
+
+    # occlusion
+    # 020310
+    #   400204
+
+    # partial
+    # down
+    # 020310
+    #   410144
+    #   410250
+    # up
+    # 020310
+    #   410146
+
+    # gray
+    # 020310
+    #   410129
+
     img_dir = '020293'
 
     view_id = '400128'
+    """
 
-    img = cv2.imread(os.path.join(data_root, img_dir, view_id + '.png'))
-    bk = cv2.imread(os.path.join(data_root, bg_dir, view_id + '.png'))
-
+    print('Setting up human parsers...')
+    fg_marker = OpenPoseForeGroundMarker()
+    print('Setting up image descriptor...')
     masker = DeepBkSubtractor()
-    learned_mask = masker.get_mask(img, bk)
 
-    demo_img = crop_out(img, learned_mask)
-    plt.imshow(demo_img[:, :, ::-1])
-    plt.show()
+    import test_list_chenglei_social_full as test_set
     
+    test_set_tag = test_set.test_set_tag
+    data_root = test_set.data_root
+    test_img_list = test_set.test_img_list
+    bg_dir = test_set.bg_dir
+
+    attrs_of_interest = ['color']
+
+    output_dir = 'output'
+    output_folder = str(datetime.datetime.now()).replace(' ', '_')
+    output_folder_path = os.path.join(output_dir, output_folder)
+
+    for attr in attrs_of_interest:
+        output_folder_path += ('_' + attr)
+
+    attrs_of_interest = set(attrs_of_interest)
+
+    for item in test_img_list:
+        frame_id, view_id, attrs = item
+        if not attrs_of_interest.issubset(attrs):
+            continue
+
+        img_path = os.path.join(data_root, frame_id, view_id + '.png')
+        bk_path = os.path.join(data_root, bg_dir, view_id + '.png')
+        print('Doing {}...'.format(img_path))
+
+
+        img = cv2.imread(img_path, 1)
+        bk = cv2.imread(bk_path, 1)
+
+        init_fg_mask = fg_marker.infer_fg(img)
+    
+        learned_mask = masker.get_mask(img, bk, init_fg_mask)
+
+        demo_img = crop_out(img, learned_mask)
+    
+        output_mask_name = '{}_{}_mask.png'.format(frame_id, view_id)
+        output_demo_name = '{}_{}_demo.png'.format(frame_id, view_id)
+        
+        if not os.path.exists(output_folder_path):
+            os.makedirs(output_folder_path)
+        
+        output_mask_path = os.path.join(output_folder_path, output_mask_name)
+        output_demo_path = os.path.join(output_folder_path, output_demo_name)
+        cv2.imwrite(output_mask_path, learned_mask)
+        cv2.imwrite(output_demo_path, demo_img)
+        print('Wrote to {}'.format(output_demo_path))
+
+        """
+        plt.imshow(bk[:, :, ::-1])
+        plt.show()
+        plt.imshow(demo_img[:, :, ::-1])
+        plt.show()
+        """
 
 
 

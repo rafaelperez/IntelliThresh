@@ -7,3 +7,6 @@
 [submodule "matting/closed-form-matting"]
 	path = matting/closed-form-matting
 	url = git@github.com:htcr/closed-form-matting.git
+[submodule "matting/global-matting"]
+	path = matting/global-matting
+	url = git@github.com:htcr/global-matting.git

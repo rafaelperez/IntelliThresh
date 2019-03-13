@@ -13,7 +13,7 @@ from vgg import vgg16_bn_descriptor, ThreshNet
 from utils import downsize_rgb, img_transform, crop_out
 
 from human_parser.openpose_pytorch.api import OpenPoseForeGroundMarker
-
+from trimap_generator import get_trimap_from_raw_mask_basic
 
 class ThreshModel(object):
     def __init__(self, feature_dim):
@@ -265,14 +265,16 @@ if __name__ == '__main__':
     test_img_list = test_set.test_img_list
     bg_dir = test_set.bg_dir
 
-    attrs_of_interest = ['color']
+    attrs_of_interest = ['color', 'hole']
 
     output_dir = 'output'
     output_folder = str(datetime.datetime.now()).replace(' ', '_')
     output_folder_path = os.path.join(output_dir, output_folder)
-
     for attr in attrs_of_interest:
         output_folder_path += ('_' + attr)
+
+    if not os.path.exists(output_folder_path):
+        os.makedirs(output_folder_path)
 
     attrs_of_interest = set(attrs_of_interest)
 
@@ -295,16 +297,19 @@ if __name__ == '__main__':
 
         demo_img = crop_out(img, learned_mask)
     
+        trimap = get_trimap_from_raw_mask_basic(learned_mask)
+
         output_mask_name = '{}_{}_mask.png'.format(frame_id, view_id)
         output_demo_name = '{}_{}_demo.png'.format(frame_id, view_id)
-        
-        if not os.path.exists(output_folder_path):
-            os.makedirs(output_folder_path)
-        
+        output_tri_name = '{}_{}_tri.png'.format(frame_id, view_id)
+
         output_mask_path = os.path.join(output_folder_path, output_mask_name)
         output_demo_path = os.path.join(output_folder_path, output_demo_name)
+        output_tri_path = os.path.join(output_folder_path, output_tri_name)
+        
         cv2.imwrite(output_mask_path, learned_mask)
         cv2.imwrite(output_demo_path, demo_img)
+        cv2.imwrite(output_tri_path, trimap)
         print('Wrote to {}'.format(output_demo_path))
 
         """

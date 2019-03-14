@@ -14,7 +14,8 @@ from utils import downsize_rgb, img_transform, crop_out
 
 from human_parser.openpose_pytorch.api import OpenPoseForeGroundMarker
 from trimap_generator import get_trimap_from_raw_mask_basic
-from matting.closed_form_matting.api import do_matting
+# from matting.closed_form_matting.api import do_matting
+from matting.grabcut.api import do_matting
 
 class ThreshModel(object):
     def __init__(self, feature_dim):
@@ -214,45 +215,6 @@ class DeepBkSubtractor(object):
 
 
 if __name__ == '__main__':
-    """
-    data_root = '/home/mscv1/Desktop/FRL/ChengleiSocial/undistorted'
-    bg_dir = '000000'
-
-    # 020296
-    #   400126
-    #   400038
-
-    # 020290
-    #   400166
-    #   
-
-    # 020315
-    #   400219
-
-    # 020293
-    #   400128
-
-    # occlusion
-    # 020310
-    #   400204
-
-    # partial
-    # down
-    # 020310
-    #   410144
-    #   410250
-    # up
-    # 020310
-    #   410146
-
-    # gray
-    # 020310
-    #   410129
-
-    img_dir = '020293'
-
-    view_id = '400128'
-    """
 
     print('Setting up human parsers...')
     fg_marker = OpenPoseForeGroundMarker()
@@ -266,7 +228,7 @@ if __name__ == '__main__':
     test_img_list = test_set.test_img_list
     bg_dir = test_set.bg_dir
 
-    attrs_of_interest = ['color', 'hole']
+    attrs_of_interest = ['gray']
 
     output_dir = 'output'
     output_folder = str(datetime.datetime.now()).replace(' ', '_')
@@ -296,8 +258,6 @@ if __name__ == '__main__':
     
         learned_mask = masker.get_mask(img, bk, init_fg_mask)
 
-        # demo_img = crop_out(img, learned_mask)
-    
         trimap = get_trimap_from_raw_mask_basic(learned_mask)
 
         alpha = do_matting(img, trimap)
@@ -318,13 +278,6 @@ if __name__ == '__main__':
         cv2.imwrite(output_demo_path, demo_img)
         cv2.imwrite(output_tri_path, trimap)
         print('Wrote to {}'.format(output_demo_path))
-
-        """
-        plt.imshow(bk[:, :, ::-1])
-        plt.show()
-        plt.imshow(demo_img[:, :, ::-1])
-        plt.show()
-        """
 
 
 

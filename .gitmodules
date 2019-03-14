@@ -2,11 +2,11 @@
 	path = human_parser/openpose_pytorch
 	url = git@github.com:htcr/pytorch_Realtime_Multi-Person_Pose_Estimation.git
 [submodule "matting/knn-matting"]
-	path = knn_matting
+	path = matting/knn_matting
 	url = git@github.com:htcr/knn-matting.git
 [submodule "matting/closed-form-matting"]
 	path = matting/closed_form_matting
 	url = git@github.com:htcr/closed-form-matting.git
 [submodule "matting/global-matting"]
-	path = global_matting
+	path = matting/global_matting
 	url = git@github.com:htcr/global-matting.git

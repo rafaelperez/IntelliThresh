@@ -66,9 +66,11 @@ def filter_largest_component_and_fill(mask):
 
 
 def crop_out(img, mask):
-    new_img = np.zeros(img.shape, dtype=np.uint8)
-    for c in range(img.shape[2]):
-        new_img[:, :, c][mask > 0] = img[:, :, c][mask > 0]
+    new_img = img.astype(np.float32)
+    mask = mask / 255.0
+    mask = mask[:, :, np.newaxis]
+    new_img *= mask
+    new_img = new_img.astype(np.uint8)
     return new_img
 
 

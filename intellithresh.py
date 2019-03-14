@@ -14,6 +14,7 @@ from utils import downsize_rgb, img_transform, crop_out
 
 from human_parser.openpose_pytorch.api import OpenPoseForeGroundMarker
 from trimap_generator import get_trimap_from_raw_mask_basic
+from matting.closed_form_matting.api import do_matting
 
 class ThreshModel(object):
     def __init__(self, feature_dim):
@@ -295,9 +296,15 @@ if __name__ == '__main__':
     
         learned_mask = masker.get_mask(img, bk, init_fg_mask)
 
-        demo_img = crop_out(img, learned_mask)
+        # demo_img = crop_out(img, learned_mask)
     
         trimap = get_trimap_from_raw_mask_basic(learned_mask)
+
+        alpha = do_matting(img, trimap)
+
+        learned_mask = alpha
+
+        demo_img = crop_out(img, learned_mask)
 
         output_mask_name = '{}_{}_mask.png'.format(frame_id, view_id)
         output_demo_name = '{}_{}_demo.png'.format(frame_id, view_id)

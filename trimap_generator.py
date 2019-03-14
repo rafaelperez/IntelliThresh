@@ -8,7 +8,7 @@ def get_trimap_from_raw_mask_basic(mask):
     h, w = mask.shape
 
     filter_hole_dim = 0.01 * h
-    min_hole_area = int(filter_hole_dim**2)
+    min_hole_area = 2*int(filter_hole_dim**2)
 
     ksize = int(filter_hole_dim)
     kernel = np.ones((ksize, ksize),np.uint8)

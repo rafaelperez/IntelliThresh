@@ -5,7 +5,7 @@
 	path = matting/knn-matting
 	url = git@github.com:htcr/knn-matting.git
 [submodule "matting/closed-form-matting"]
-	path = matting/closed-form-matting
+	path = matting/closed_form_matting
 	url = git@github.com:htcr/closed-form-matting.git
 [submodule "matting/global-matting"]
 	path = matting/global-matting

@@ -211,7 +211,24 @@ class DeepBkSubtractor(object):
 
         return learned_mask
         
-        
+
+class IntelliThresh(object):
+    def __init__(self):
+        print('Setting up human parsers...')
+        self.fg_marker = OpenPoseForeGroundMarker()
+        print('Setting up image descriptor...')
+        self.masker = DeepBkSubtractor()
+
+    def get_mask(self, img, bg):
+        init_fg_mask = self.fg_marker.infer_fg(img)
+    
+        learned_mask = self.masker.get_mask(img, bg, init_fg_mask)
+
+        trimap = get_trimap_from_raw_mask_basic(learned_mask)
+
+        alpha = do_matting(img, trimap)
+
+        return alpha
 
 
 if __name__ == '__main__':

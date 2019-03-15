@@ -10,3 +10,6 @@
 [submodule "matting/global-matting"]
 	path = matting/global_matting
 	url = git@github.com:htcr/global-matting.git
+[submodule "human_parser/deeplab-pytorch"]
+	path = human_parser/deeplab-pytorch
+	url = git@github.com:kazuto1011/deeplab-pytorch.git

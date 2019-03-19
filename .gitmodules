@@ -14,5 +14,5 @@
 	path = human_parser/deeplab_pytorch
 	url = git@github.com:kazuto1011/deeplab-pytorch.git
 [submodule "masker/flownet2-pytorch"]
-	path = masker/flownet2-pytorch
+	path = masker/flownet2_diff
 	url = git@github.com:htcr/flownet2-pytorch.git

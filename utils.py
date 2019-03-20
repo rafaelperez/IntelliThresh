@@ -2,6 +2,26 @@ import cv2
 import numpy as np
 
 
+def block_img_size(ori_size, block_size):
+    ori_h, ori_w = ori_size
+    new_h, new_w = ori_h // block_size * block_size, ori_w // block_size * block_size
+    return (new_h, new_w)
+
+
+def limit_img_size(ori_size, max_edge):
+    ori_h, ori_w = ori_size
+    ori_max = max(ori_h, ori_w)
+    scale = min(max_edge / ori_max, 1.0)
+    new_h, new_w = int(scale * ori_h), int(scale * ori_w)
+    return (new_h, new_w)
+
+    
+def resize_img(img, new_size):
+    new_h, new_w = new_size
+    new_img = cv2.resize(img, (new_w, new_h))
+    return new_img
+
+
 def img_transform(img, max_edge=1000):
     h, w = img.shape[0:2]
     max_size = max(h, w)

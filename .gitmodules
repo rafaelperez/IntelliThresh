@@ -1,5 +1,5 @@
 [submodule "human_parser/pytorch_Realtime_Multi-Person_Pose_Estimation"]
-	path = masker/openpose_pytorch
+	path = human_parser/openpose_pytorch
 	url = git@github.com:htcr/pytorch_Realtime_Multi-Person_Pose_Estimation.git
 [submodule "matting/knn-matting"]
 	path = matting/knn_matting
@@ -11,7 +11,7 @@
 	path = matting/global_matting
 	url = git@github.com:htcr/global-matting.git
 [submodule "human_parser/deeplab-pytorch"]
-	path = human_parser/deeplab_pytorch
+	path = masker/deeplab_pytorch
 	url = git@github.com:kazuto1011/deeplab-pytorch.git
 [submodule "masker/flownet2-pytorch"]
 	path = masker/flownet2_diff

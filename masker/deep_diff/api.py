@@ -145,6 +145,11 @@ class VGG16DeepDiffMasker(object):
             diff = cv2.resize(diff, (w, h))
 
             diffs.append(diff)
+            plt.imshow(diff)
+            plt.show()
+
+        plt.imshow(diff_rgb)
+        plt.show()
 
         diffs.append(diff_rgb)
         diffs = np.stack(diffs, axis=2)
@@ -167,6 +172,9 @@ class VGG16DeepDiffMasker(object):
 
         for i in range(thresh_model.learning_iters):
             neg_mask = 255 - pos_mask
+
+            plt.imshow(pos_mask)
+            plt.show()
 
             pos_is, pos_js = np.where(pos_mask > 0)
             neg_is, neg_js = np.where(neg_mask > 0)

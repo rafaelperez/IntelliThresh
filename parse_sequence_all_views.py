@@ -18,11 +18,11 @@ if __name__ == '__main__':
     parser.add_argument('--pid', type=int, default=-1)
     args = parser.parse_args()
 
-    print('Setting up masker...')
+    print('process {} Setting up masker...'.format(args.pid))
     masker = DeepLabV2JointBKSMasker(crf=False)
 
-    test_set_tag = 'chenglei_social_full'
-    data_root = '/home/mscv1/Desktop/FRL/ChengleiSocial_full/ChengleiSocial/undistorted'
+    # test_set_tag = 'chenglei_social_full'
+    data_root = args.data_root
     bg_dir = '000000'
     frame_format = '%06d'
     frame_begin = '020450'

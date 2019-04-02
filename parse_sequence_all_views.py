@@ -12,21 +12,27 @@ import torch
 
 import argparse
 
+import torch.multiprocessing as multiprocessing
 
 def do_parsing(param_dict):
     frame_begin_num, frame_end_num = param_dict['frame_begin_num'], param_dict['frame_end_num']
     
+    print(frame_begin_num)
+    print(frame_end_num)
+
     if frame_begin_num >= frame_end_num:
         return
 
     nid, pid = param_dict['nid'], param_dict['pid']
     data_root = param_dict['data_root']
     output_root = param_dict['output_root']
+    bg_dir = param_dict['bg_dir']
 
     print('node {} process {} Setting up masker...'.format(nid, pid))
     masker = DeepLabV2JointBKSMasker(crf=False, device_id=pid)
 
     frame_format = '%06d'
+    bg_path = os.path.join(data_root, bg_dir)
 
     for frame_id_int in range(frame_begin_num, frame_end_num, 1):
         frame_id = frame_format % frame_id_int
@@ -37,10 +43,11 @@ def do_parsing(param_dict):
             os.makedirs(frame_output_path)
         
         all_views = os.listdir(frame_path)
+        all_views.sort()
 
         for view_id in all_views:
             img_path = os.path.join(frame_path, view_id)
-            bk_path = os.path.join(frame_path, view_id)
+            bk_path = os.path.join(bg_path, view_id)
             print('Node {} Process {} Doing {}...'.format(nid, pid, img_path))
 
             img = cv2.imread(img_path, 1)
@@ -66,6 +73,8 @@ def do_parsing(param_dict):
 
 if __name__ == '__main__':
 
+    multiprocessing.set_start_method('spawn')
+
     parser = argparse.ArgumentParser(description='Script for generating mask on cluster.')
     parser.add_argument('--data_root', type=str, required=True)
     parser.add_argument('--frame_begin', type=str, required=True)
@@ -82,7 +91,6 @@ if __name__ == '__main__':
     # test_set_tag = 'chenglei_social_full'
     data_root = args.data_root
     bg_dir = args.bg_dir
-    frame_format = '%06d'
     frame_begin = args.frame_begin
     frame_end = args.frame_end
     # view_id = '400170'
@@ -108,9 +116,11 @@ if __name__ == '__main__':
 
     if cur_node_frame_begin_num < cur_node_frame_end_num:
         process_num = torch.cuda.device_count()
+        print(process_num)
+
         process_pool = Pool(process_num)
         cur_node_total_frame_num = cur_node_frame_end_num - cur_node_frame_begin_num
-        frame_per_process = (cur_node_frame_begin_num + process_num - 1 ) // process_num
+        frame_per_process = (cur_node_total_frame_num + process_num - 1 ) // process_num
         param_list = list()
         for i in range(process_num):
             param_dict = dict()
@@ -125,7 +135,7 @@ if __name__ == '__main__':
             
         process_pool.map(do_parsing, param_list)
     else:
-        print('Node {} Finished'.format(nid))
+        print('Node {} Finished'.format(args.node_id))
 
 
 

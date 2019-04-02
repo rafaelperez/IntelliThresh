@@ -7,9 +7,16 @@ import matplotlib.pyplot as plt
 from utils import crop_out, filter_largest_component
 from masker.deeplab_pytorch.api import DeepLabV2JointBKSMasker
 
-
+import argparse
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description='Script for generating mask on cluster.')
+    parser.add_argument('--data_root', type=str, required=True)
+    parser.add_argument('--frame_begin', type=str, required=True)
+    parser.add_argument('--frame_end', type=str, required=True)
+    parser.add_argument('--pid', type=int, default=-1)
+    args = parser.parse_args()
 
     print('Setting up masker...')
     masker = DeepLabV2JointBKSMasker(crf=False)

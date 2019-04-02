@@ -45,7 +45,7 @@ if __name__ == '__main__':
     # masker = FlowNet2DiffMasker()
     # masker = FRLBaselineMasker()
     # masker = DeepLabV2Masker()
-    masker = DeepLabV2JointBKSMasker(crf=True)
+    masker = DeepLabV2JointBKSMasker(crf=False)
 
     import test_list_chenglei_social_full as test_set
     
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     bg_dir = test_set.bg_dir
 
     attrs_of_interest = ['color', 'hole', 'gray']
-    exp_tag = 'deeplabv2jointbks_crf_color_2048'
+    exp_tag = 'deeplabv2jointbks_4000_2048'
 
     output_dir = 'output'
     output_folder = str(datetime.datetime.now()).replace(' ', '_')

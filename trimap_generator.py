@@ -25,3 +25,18 @@ def get_trimap_from_raw_mask_basic(mask):
     trimap[mask_fg > 0] = 255
 
     return trimap
+
+
+def get_trimap_from_fine_mask(mask):
+    h, w = mask.shape
+
+    ksize = 2*int(0.005 * h)
+    kernel = np.ones((ksize, ksize),np.uint8)
+
+    mask_unsure = cv2.dilate(mask, kernel, iterations=1)
+    
+    trimap = np.zeros((h, w), dtype=np.uint8)
+    trimap[mask_unsure > 0] = 128
+    trimap[mask > 0] = 255
+
+    return trimap

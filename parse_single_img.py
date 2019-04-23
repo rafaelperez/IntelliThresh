@@ -5,7 +5,7 @@ import datetime
 import matplotlib.pyplot as plt
 
 from utils import crop_out, filter_largest_component
-from masker.deeplab_pytorch.api import DeepLabV2JointBKSMasker
+from masker.deeplab_pytorch.api import DeepLabV2JointBKSV2Masker
 import argparse
 
 
@@ -17,7 +17,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     print('Setting up masker...')
-    masker = DeepLabV2JointBKSMasker(crf=False)
+    masker = DeepLabV2JointBKSV2Masker(crf=False)
 
     # test_set_tag = 'chenglei_social_full'
     # data_root = '/home/mscv1/Desktop/FRL/ChengleiSocial_full/ChengleiSocial/undistorted'
@@ -46,6 +46,23 @@ if __name__ == '__main__':
 
     img = cv2.imread(img_path, 1)
     bk = cv2.imread(bk_path, 1)
+
+    """
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    bk = cv2.cvtColor(bk, cv2.COLOR_BGR2GRAY)
+
+    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    bk = cv2.cvtColor(bk, cv2.COLOR_GRAY2BGR)
+    """
+    
+
+    # bounding_box = (1128, 2588, 1992, 3600) # [l, [t, r), b)
+    # cropped image will still follow the rescale rule specified by CONFIG
+    # where max edge will be scaled to CONFIG.TEST.SIZE
+
+    # l, t, r, b = bounding_box
+    # img = img[t:b, l:r, :]
+    # bk = bk[t:b, l:r, :]
 
     # init_fg_mask = fg_marker.infer_fg(img)
 

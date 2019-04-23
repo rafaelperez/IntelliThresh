@@ -15,7 +15,9 @@ from masker.deep_diff.api import VGG16DeepDiffMasker
 # from masker.flownet2_diff.api import FlowNet2DiffMasker
 from masker.baseline.api import FRLBaselineMasker
 from masker.deeplab_pytorch.api import DeepLabV2Masker
-from masker.deeplab_pytorch.api import DeepLabV2JointBKSMasker
+from masker.deeplab_pytorch.api import DeepLabV2JointBKSMasker, DeepLabV2JointBKSV2Masker, DeepDiffE2EMasker
+
+from cv2.ximgproc import guidedFilter
 
 class IntelliThresh(object):
     def __init__(self):
@@ -45,17 +47,22 @@ if __name__ == '__main__':
     # masker = FlowNet2DiffMasker()
     # masker = FRLBaselineMasker()
     # masker = DeepLabV2Masker()
-    masker = DeepLabV2JointBKSMasker(crf=False)
+    # masker = DeepLabV2JointBKSMasker(crf=True)
+    masker = DeepLabV2JointBKSV2Masker(crf=False)
+    # masker = DeepDiffE2EMasker()
 
     import test_list_chenglei_social_full as test_set
+    # import test_list_dani as test_set
+    # import test_list_dude as test_set
     
     test_set_tag = test_set.test_set_tag
     data_root = test_set.data_root
     test_img_list = test_set.test_img_list
+    # bg_dir = test_set.bg_dir
     bg_dir = test_set.bg_dir
 
     attrs_of_interest = ['color', 'hole', 'gray']
-    exp_tag = 'deeplabv2jointbks_4000_2048'
+    exp_tag = 'ablationv2baseline_chenglei_4000_2048'
 
     output_dir = 'output'
     output_folder = str(datetime.datetime.now()).replace(' ', '_')
@@ -81,6 +88,8 @@ if __name__ == '__main__':
 
         img_path = os.path.join(data_root, frame_id, view_id + '.png')
         bk_path = os.path.join(data_root, bg_dir, view_id + '.png')
+        # bk_path = os.path.join('/home/mscv1/Desktop/FRL/dome_bg_imgs/real_bg_imgs/bkimggreen', view_id + '.png')
+        print(bk_path)
         print('Doing {}...'.format(img_path))
 
 
@@ -90,6 +99,12 @@ if __name__ == '__main__':
         # init_fg_mask = fg_marker.infer_fg(img)
     
         # learned_mask = masker.get_mask(img, bk, init_fg_mask)
+        
+        
+        diff_map = np.sum((img.astype(np.float32) - bk.astype(np.float32)) ** 2, axis=2)**0.5
+        #plt.imshow(diff_map)
+        #plt.show()
+
         learned_mask = masker.get_mask(img, bk)
 
         # trimap = get_trimap_from_raw_mask_basic(learned_mask)
@@ -97,7 +112,12 @@ if __name__ == '__main__':
         # alpha = do_matting(img, trimap)
 
         # learned_mask = alpha
-        learned_mask = filter_largest_component(learned_mask)
+        # learned_mask = filter_largest_component(learned_mask)
+
+
+        # Try guided Filter
+        # guidedFilter(guide=img, src=learned_mask, dst=learned_mask, radius=60, eps=1e-8)
+
 
         demo_img = crop_out(img, learned_mask)
 
@@ -113,6 +133,6 @@ if __name__ == '__main__':
         cv2.imwrite(output_demo_path, demo_img)
         # cv2.imwrite(output_tri_path, trimap)
         print('Wrote to {}'.format(output_demo_path))
-
+        
 
 

@@ -1,0 +1,1 @@
+python parse_single_img.py --img_path=/media/mscv1/14fecf86-bdfa-4ebd-8b47-eea4ddee198e/dome_fg_imgs/400160.png --out_path=test_out.png --bg_dir=/media/mscv1/14fecf86-bdfa-4ebd-8b47-eea4ddee198e/dome_bg_imgs/real_bg_imgs/bkimggreen
